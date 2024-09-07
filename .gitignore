@@ -198,10 +198,11 @@ pyrightconfig.json
 # Go workspace file
 go.work
 
-# End of https://www.toptal.com/developers/gitignore/api
+# End of https://www.toptal.com/developers/gitignore/api/go
 
 
 
 
 ### Storage ###
 python/storage/
+
