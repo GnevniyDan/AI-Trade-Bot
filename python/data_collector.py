@@ -35,7 +35,7 @@ def ask_moex(ticker: str = "FEES", interval: int = 10, period: str = "1D") -> pa
         #перегон в датафрейм
         dataFrame = pandas.DataFrame(candles)
         dataFrame.to_json("storage/{}_from_{}.json".format(ticker, start))
-        print("Created files:\nstorage/{}_from_{}.json".format(ticker, start))
+        #print("Created files:\nstorage/{}_from_{}.json".format(ticker, start))
         return dataFrame
 
 
