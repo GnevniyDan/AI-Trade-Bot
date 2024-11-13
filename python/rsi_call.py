@@ -1,10 +1,11 @@
 import requests
-import apimoex
 import pandas
 import datetime
 import os
 import re as regular
-import data_collector
+"""import data_collector"""
+import _AppProjectKit as APK
+
 
 # Директория для хранения данных
 DATA_DIR = "storage"
@@ -29,7 +30,7 @@ def current_rsi_call(dataFrame: pandas.DataFrame, candle_frame: int = 18) -> pan
 
     # Проверка длины серии
     if close.size < candle_frame:
-        raise data_collector.DatabaseError(f"Data frame is too short: {close.size} rows, requires at least {candle_frame}.")
+        raise APK.DatabaseError(f"Data frame is too short: {close.size} rows, requires at least {candle_frame}.")
 
     # [1, 3, 6, 10, 15] -> [2, 3, 4, 5]
     delta = close.diff()
@@ -53,7 +54,7 @@ def current_rsi_call(dataFrame: pandas.DataFrame, candle_frame: int = 18) -> pan
 
 if __name__ == "__main__":
     # Чтение данных из файла
-    data = pandas.read_json("storage/FEES_2024-10-10_3D_[214156].json")
+    data = pandas.read_json("storage\MOEX_2024-11-12_1D_[191120].json")
     
     # Проверка наличия необходимого столбца 'close'
     if 'close' not in data.columns:
