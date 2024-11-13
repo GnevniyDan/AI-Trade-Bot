@@ -4,9 +4,10 @@ import pandas
 import datetime
 import os 
 import re as regular
+import _AppProjectKit as APK
 
 
-class ApplicationError(Exception):
+"""class ApplicationError(Exception):
     pass
 
 class DatabaseError(ApplicationError):
@@ -15,7 +16,7 @@ class DatabaseError(ApplicationError):
 class InvalidInputError(ApplicationError):
     def __init__(self, message="Некорректный ввод данных"):
         self.message = message
-        super().__init__(self.message)
+        super().__init__(self.message)"""
         
         
 # Путь к директории для сохранения данных
@@ -41,7 +42,7 @@ def ask_moex(ticker: str = "FEES", interval: int = 10, period: str = "1D", end: 
 
             #Ошибка ввода
             case _:
-                raise InvalidInputError("wrong period")
+                raise APK.InvalidInputError("wrong period")
             
         #список словарей свечек
         try:
@@ -61,7 +62,7 @@ def ask_moex(ticker: str = "FEES", interval: int = 10, period: str = "1D", end: 
 
         #проверка на пустоту
         if not candles:
-            raise DatabaseError("dataframe is empty")
+            raise  APK.DatabaseError("dataframe is empty")
 
         #перегон в датафрейм
         dataFrame = pandas.DataFrame(candles)
@@ -71,5 +72,5 @@ def ask_moex(ticker: str = "FEES", interval: int = 10, period: str = "1D", end: 
 
 
 if __name__ == "__main__":
-    fetchedData = ask_moex(ticker = "FEES", period = "3D")
+    fetchedData = ask_moex(ticker = "MOEX", period = "1D")
     print(fetchedData)
