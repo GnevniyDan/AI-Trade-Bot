@@ -28,3 +28,15 @@ class todaySupRes:
 
     def __repr__(self):
         return f"Рассчитанные уровни:\nPivot Point: {self.pivot}\nResistance 1: {self.resistance_1}\nResistance 2: {self.resistance_2}\nResistance 3: {self.resistance_3}\nSupport 1: {self.support_1}\nSupport 2: {self.support_2}\nSupport 3: {self.support_3}"
+    
+
+class instantCandleReport:
+    def __init__(self, RSI: float, rsipoints: int, ):
+        self.RSI = RSI
+        self.rsipoints = rsipoints
+
+
+class bollinger:
+    def __init__(self, recommendation, dataFrame):
+        self.recommendation = recommendation
+        self.dataFrame = dataFrame

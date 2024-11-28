@@ -85,10 +85,49 @@ def plot_strategy_performance(data):
     plt.title('Эффективность стратегии')
     plt.show()
 
-if __name__ == "__main__":
+
+def bollinger_strings(dataFrame: pd.DataFrame) -> APK.bollinger:
     try:
         # Загрузка данных
-        data = load_data(os.path.join(DATA_DIR, "FEES_2024-11-10_3D_[183522].json"))
+        data = dataFrame
+        # Расчет индикаторов и генерация сигналов
+        data = calculate_bollinger_bands(data)
+        data = generate_signals(data)
+        data = calculate_returns(data)
+
+        """# Печать и сохранение сигналов
+        print("\nПоследние сигналы:")
+        for i in range(len(data)):
+            if data['Signal'].iloc[i] != 0:
+                print(f"Дата: {data.index[i]}, Сигнал: {'Покупка' if data['Signal'].iloc[i] == 1 else 'Продажа'}")
+        
+        save_signals_to_file(data)
+        print("Сигналы и рекомендации успешно сохранены в файл 'bollinger_signals_output.txt'.")
+     
+        # Визуализация результатов
+        plot_bollinger_bands(data)
+        plot_strategy_performance(data)
+        """
+        # Печать рекомендации
+        recommendation = generate_recommendation(data)
+        """
+        print("\nАнализ последних данных:")
+        print(recommendation)
+        # Печать последних значений индикаторов
+        print("\nПоследние значения индикаторов:")
+        print(f"Цена закрытия: {data['close'].iloc[-1]:.2f}")
+        print(f"Верхняя полоса: {data['Upper'].iloc[-1]:.2f}")
+        print(f"Нижняя полоса: {data['Lower'].iloc[-1]:.2f}")"""
+        columns_to_keep = ["Upper", "Lower", 'Signal']
+        bollinger_class = APK.bollinger(recommendation, data[columns_to_keep])
+        return bollinger_class
+    except APK.ApplicationError as e:
+        return False
+
+"""if __name__ == "__main__":
+    try:
+        # Загрузка данных
+        data = load_data(os.path.join(DATA_DIR, "MOEX_2024-11-12_1D_[191120].json"))
 
         # Расчет индикаторов и генерация сигналов
         data = calculate_bollinger_bands(data)
@@ -120,3 +159,4 @@ if __name__ == "__main__":
         print(f"Нижняя полоса: {data['Lower'].iloc[-1]:.2f}")
     except APK.ApplicationError as e:
         print(f"Ошибка: {e}")
+"""
