@@ -87,7 +87,7 @@ def save_signals_to_file(signals, filename="signals_output.txt"):
 if __name__ == "__main__":
     try:
         # Чтение данных из файла
-        filename = os.path.join(DATA_DIR, "FEES_2024-11-103D[183522].json")
+        filename = os.path.join(DATA_DIR, "FEES_2024-11-10_3D_[183522].json")
         df = load_data(filename)
         
         # Нахождение уровней поддержки и сопротивления

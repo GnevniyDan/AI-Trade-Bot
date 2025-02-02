@@ -39,7 +39,7 @@ def today_levels(dataFrame: pandas.DataFrame) -> APK.todaySupRes:
     Объект класса todaySupRes
     """
     #фильтрация фрейма по сегодняшним свечам
-    now = datetime.datetime.now().date()
+    now = datetime.datetime.strptime(dataFrame.iloc[-1]["begin"], "%Y-%m-%d %H:%M:%S") - datetime.timedelta(days=1)
     now_data = dataFrame.loc[dataFrame['begin'] >= now.strftime("%Y-%m-%d")]
 
     #проаерка на пустоту

@@ -72,5 +72,5 @@ def ask_moex(ticker: str = "FEES", interval: int = 10, period: str = "1D", end: 
 
 
 if __name__ == "__main__":
-    fetchedData = ask_moex(ticker = "MOEX", period = "1D")
+    fetchedData = ask_moex(ticker = "YDEX", period="5D")
     print(fetchedData)

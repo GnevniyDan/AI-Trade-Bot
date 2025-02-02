@@ -2,6 +2,9 @@
 Библиотека наших классов ошибок и типов данных
 """
 
+#Режим работы (минут)
+OPERATING_MODE = 10
+
 #Ошибки
 class ApplicationError(Exception):
     pass
