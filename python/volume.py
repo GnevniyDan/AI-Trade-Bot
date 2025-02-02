@@ -1,6 +1,7 @@
 import json
 import os
 import pandas as pd
+from datetime import datetime
 import _AppProjectKit as APK
 
 # Директория для хранения данных
@@ -11,11 +12,23 @@ if not os.path.exists(DATA_DIR):
 def load_data(filename):
     """Загружает данные из JSON-файла в DataFrame."""
     try:
-        with open(filename, 'r') as f:
+        # Полный путь к файлу в директории storage
+        full_path = os.path.join(DATA_DIR, filename)
+        
+        with open(full_path, 'r') as f:
             data = json.load(f)
         
-        # Преобразование JSON в DataFrame
-        df = pd.DataFrame(data)
+        # Для структуры данных FEES
+        if isinstance(data, dict) and all(key in data for key in ['begin', 'close', 'volume']):
+            # Преобразуем формат словаря в список записей
+            df = pd.DataFrame({
+                'date': list(data['begin'].values()),
+                'close': list(data['close'].values()),
+                'volume': list(data['volume'].values())
+            })
+        else:
+            # Оригинальный формат
+            df = pd.DataFrame(data)
         
         # Проверка наличия необходимых столбцов
         required_columns = ['close', 'volume', 'date']
@@ -80,14 +93,14 @@ def volume_strategy(df, support, resistance):
 
 def save_signals_to_file(signals, filename="signals_output.txt"):
     """Сохраняет сигналы в текстовый файл."""
-    with open(filename, 'w', encoding='utf-8') as file:
+    output_path = os.path.join(DATA_DIR, filename)
+    with open(output_path, 'w', encoding='utf-8') as file:
         for signal in signals:
             file.write(f"Дата: {signal[0]}, Сигнал: {signal[1]}, Описание: {signal[2]}\n")
 
-if __name__ == "__main__":
+def main(filename):
     try:
         # Чтение данных из файла
-        filename = os.path.join(DATA_DIR, "FEES_2024-11-103D[183522].json")
         df = load_data(filename)
         
         # Нахождение уровней поддержки и сопротивления
@@ -102,9 +115,14 @@ if __name__ == "__main__":
             print(f"Дата: {signal[0]}, Сигнал: {signal[1]}, Описание: {signal[2]}")
             
         save_signals_to_file(signals)
-        print("Сигналы успешно сохранены в файл 'signals_output.txt'.")
+        print(f"Сигналы успешно сохранены в файл '{os.path.join(DATA_DIR, 'signals_output.txt')}'")
         
     except APK.ApplicationError as e:
         print(f"Ошибка: {str(e)}")
     except Exception as e:
         print(f"Непредвиденная ошибка: {str(e)}")
+
+if __name__ == "__main__":
+    # Используем файл FEES
+    filename = "FEES_2024-11-10_3D_[183522].json"
+    main(filename)
