@@ -64,7 +64,7 @@ def save_signals_to_file(signals, filename="stochastic_signals_output.txt"):
 if __name__ == "__main__":
     try:
         # Загрузка данных из файла
-        data = load_data(os.path.join(DATA_DIR, "FEES_2024-11-10_3D_[183522].json"))
+        data = load_data(os.path.join(DATA_DIR, "MOEX_2024-11-12_1D_[191120].json"))
         
         # Расчет значений стохастического осциллятора
         stochastic_values = calculate_stochastic(data)

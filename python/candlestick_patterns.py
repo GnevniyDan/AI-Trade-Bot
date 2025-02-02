@@ -87,7 +87,9 @@ def current_candlestick_patterns(dataFrame: pandas.DataFrame, window: int = 3) -
     #Не более 100 шгагов назад
     dataFrame['Engulfing'] = [is_engulfing(dataFrame, i) for i in range(max(len(dataFrame), 100))]
 
-    return dataFrame
+    columns_to_keep = ['Hammer', 'HangingMan', 'Engulfing']
+
+    return dataFrame[columns_to_keep]
 
 
 if __name__ == "__main__":
