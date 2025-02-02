@@ -12,22 +12,18 @@ if not os.path.exists(DATA_DIR):
 def load_data(filename):
     """Загружает данные из JSON-файла в DataFrame."""
     try:
-        # Полный путь к файлу в директории storage
         full_path = os.path.join(DATA_DIR, filename)
-        
         with open(full_path, 'r') as f:
             data = json.load(f)
         
         # Для структуры данных FEES
         if isinstance(data, dict) and all(key in data for key in ['begin', 'close', 'volume']):
-            # Преобразуем формат словаря в список записей
             df = pd.DataFrame({
                 'date': list(data['begin'].values()),
                 'close': list(data['close'].values()),
                 'volume': list(data['volume'].values())
             })
         else:
-            # Оригинальный формат
             df = pd.DataFrame(data)
         
         # Проверка наличия необходимых столбцов
@@ -35,7 +31,6 @@ def load_data(filename):
         if not all(col in df.columns for col in required_columns):
             raise APK.InvalidInputError("Отсутствуют обязательные столбцы: 'close', 'volume' или 'date'")
         
-        # Преобразование типов данных
         df['close'] = pd.to_numeric(df['close'])
         df['volume'] = pd.to_numeric(df['volume'])
         df['date'] = pd.to_datetime(df['date'])
@@ -52,9 +47,7 @@ def load_data(filename):
 def find_support_resistance(df, lookback=20):
     """Находит уровни поддержки и сопротивления используя pandas."""
     try:
-        # Получаем последние n значений
         recent_prices = df['close'].tail(lookback)
-        
         support = recent_prices.min()
         resistance = recent_prices.max()
         
@@ -70,52 +63,107 @@ def find_support_resistance(df, lookback=20):
     except Exception as e:
         raise APK.InvalidInputError(f"Ошибка при расчете уровней: {str(e)}")
 
-def volume_strategy(df, support, resistance):
-    """Применяет стратегию анализа объема используя pandas."""
-    signals = []
+def volume_analysis(df, support, resistance):
+    """
+    Анализирует объемы и цены, возвращает DataFrame с сигналами.
     
-    # Создаем сдвинутые значения для сравнения
+    Сигналы:
+    2  = Сильный сигнал на покупку (прорыв сопротивления с высоким объемом)
+    1  = Слабый сигнал на покупку (рост цены при высоком объеме)
+    0  = Нет сигнала
+    -1 = Слабый сигнал на продажу (падение цены при высоком объеме)
+    -2 = Сильный сигнал на продажу (прорыв поддержки с высоким объемом)
+    """
+    df = df.copy()
     df['prev_close'] = df['close'].shift(1)
     df['prev_volume'] = df['volume'].shift(1)
+    df['Volume_Signal'] = 0
     
-    # Пропускаем первую строку, так как для неё нет предыдущих значений
-    for idx, row in df.iloc[1:].iterrows():
-        if row['close'] > resistance and row['volume'] > row['prev_volume']:
-            signals.append((row['date'], "Покупка", "Прорыв сопротивления с высоким объемом"))
-        elif row['close'] < support and row['volume'] > row['prev_volume']:
-            signals.append((row['date'], "Продажа", "Прорыв поддержки с высоким объемом"))
-        elif row['close'] > row['prev_close'] and row['volume'] < row['prev_volume']:
-            signals.append((row['date'], "Предупреждение", "Рост цены при снижающемся объеме"))
-        elif row['close'] < row['prev_close'] and row['volume'] < row['prev_volume']:
-            signals.append((row['date'], "Предупреждение", "Падение цены при снижающемся объеме"))
+    # Сильный сигнал на покупку
+    df.loc[(df['close'] > resistance) & 
+           (df['volume'] > df['prev_volume']), 'Volume_Signal'] = 2
     
-    return signals
+    # Сильный сигнал на продажу
+    df.loc[(df['close'] < support) & 
+           (df['volume'] > df['prev_volume']), 'Volume_Signal'] = -2
+    
+    # Слабый сигнал на покупку
+    df.loc[(df['close'] > df['prev_close']) & 
+           (df['volume'] > df['prev_volume']) & 
+           (df['Volume_Signal'] == 0), 'Volume_Signal'] = 1
+    
+    # Слабый сигнал на продажу
+    df.loc[(df['close'] < df['prev_close']) & 
+           (df['volume'] > df['prev_volume']) & 
+           (df['Volume_Signal'] == 0), 'Volume_Signal'] = -1
+    
+    return df
 
-def save_signals_to_file(signals, filename="signals_output.txt"):
-    """Сохраняет сигналы в текстовый файл."""
-    output_path = os.path.join(DATA_DIR, filename)
-    with open(output_path, 'w', encoding='utf-8') as file:
-        for signal in signals:
-            file.write(f"Дата: {signal[0]}, Сигнал: {signal[1]}, Описание: {signal[2]}\n")
+def get_volume_summary(data: pd.DataFrame) -> dict:
+    """
+    Создает сводку по текущим значениям объемов и сигналам
+    
+    Returns:
+        dict с текущим состоянием индикатора
+    """
+    try:
+        latest = data.iloc[-1]
+        prev = data.iloc[-2]
+        
+        # Определяем тренд объема
+        if latest['volume'] > prev['volume']:
+            volume_trend = "Растущий"
+        elif latest['volume'] < prev['volume']:
+            volume_trend = "Падающий"
+        else:
+            volume_trend = "Боковой"
+            
+        # Расшифровка сигнала
+        signal_desc = {
+            2: "Сильный сигнал на покупку",
+            1: "Слабый сигнал на покупку",
+            0: "Нет сигнала",
+            -1: "Слабый сигнал на продажу",
+            -2: "Сильный сигнал на продажу"
+        }
+            
+        return {
+            'volume_trend': volume_trend,
+            'current_volume': latest['volume'],
+            'prev_volume': prev['volume'],
+            'volume_change': (latest['volume'] - prev['volume']) / prev['volume'] * 100,
+            'signal': latest['Volume_Signal'],
+            'signal_description': signal_desc[latest['Volume_Signal']]
+        }
+        
+    except Exception as e:
+        raise APK.ApplicationError(f"Error creating volume summary: {str(e)}")
 
 def main(filename):
     try:
-        # Чтение данных из файла
+        # Чтение данных
         df = load_data(filename)
         
-        # Нахождение уровней поддержки и сопротивления
+        # Нахождение уровней
         sup_res = find_support_resistance(df)
+        print("\nУровни поддержки и сопротивления:")
         print(sup_res)
         
-        # Выполнение стратегии анализа объема
-        signals = volume_strategy(df, sup_res.support_1, sup_res.resistance_1)
+        # Анализ объемов
+        result = volume_analysis(df, sup_res.support_1, sup_res.resistance_1)
         
-        # Печать и сохранение сигналов
-        for signal in signals:
-            print(f"Дата: {signal[0]}, Сигнал: {signal[1]}, Описание: {signal[2]}")
-            
-        save_signals_to_file(signals)
-        print(f"Сигналы успешно сохранены в файл '{os.path.join(DATA_DIR, 'signals_output.txt')}'")
+        # Получение сводки
+        summary = get_volume_summary(result)
+        
+        # Вывод результатов
+        print("\nПоследние 10 значений объемов и сигналов:")
+        print(result[['close', 'volume', 'Volume_Signal']].tail(10))
+        
+        print("\nТекущее состояние:")
+        print(f"Тренд объема: {summary['volume_trend']}")
+        print(f"Текущий объем: {summary['current_volume']:,.0f}")
+        print(f"Изменение объема: {summary['volume_change']:.2f}%")
+        print(f"Сигнал ({summary['signal']}): {summary['signal_description']}")
         
     except APK.ApplicationError as e:
         print(f"Ошибка: {str(e)}")
@@ -123,6 +171,5 @@ def main(filename):
         print(f"Непредвиденная ошибка: {str(e)}")
 
 if __name__ == "__main__":
-    # Используем файл FEES
     filename = "FEES_2024-11-10_3D_[183522].json"
     main(filename)
