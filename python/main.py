@@ -18,6 +18,7 @@ from supres_levels import today_levels
 from data_collector import ask_moex
 from moving_averages import current_ma_analysis, get_ma_summary
 from Stochastic_RSI import calculate_stochastic_rsi, get_stoch_rsi_summary
+from volume import volume_analysis, get_volume_summary, find_support_resistance
 
 
 # Директория для хранения данных
@@ -61,11 +62,14 @@ def processDataFrame(data: pandas.DataFrame) -> pandas.DataFrame:
     #столбцы для скользящего среднего
     dataMod = current_ma_analysis(dataMod)
 
+    #уровни поддержки и сопротивления
+    levels = today_levels(data)
+
+    #столбцы для объёмов
+    dataMod = volume_analysis(dataMod, levels.support_1, levels.resistance_1)
+
     #столбцы для стохастик-рсай
     dataMod = calculate_stochastic_rsi(dataMod)
-
-    #комментарии для уровней поддержки и сопротивления
-    levels = today_levels(data)
 
     #комментарии скользящего среднего
     summary_MA = get_ma_summary(dataMod)
@@ -73,9 +77,13 @@ def processDataFrame(data: pandas.DataFrame) -> pandas.DataFrame:
     #комментарии для 100хахастика
     summary_SR = get_stoch_rsi_summary(dataMod)
 
+    #комментарии для объёмов
+    summary_V = get_volume_summary(dataMod)
+
     #рекоммендации
     Fore.YELLOW
     print(Fore.CYAN + "Мгновенные рекомендации:\n{}\n\n{}\n".format(bollinger.recommendation, levels))
+
     print("Сводная информация по Скользящим средним:")
     print(f"Тренд: {summary_MA['trend']}")
     print(f"Волатильность: {summary_MA['volatility_status']} ({summary_MA['current_volatility']:.2%})")
@@ -83,15 +91,21 @@ def processDataFrame(data: pandas.DataFrame) -> pandas.DataFrame:
     print(f"Цена закрытия: {summary_MA['close']:.2f}")
     print(f"SMA: {summary_MA['sma']:.2f}")
     print(f"EMA: {summary_MA['ema']:.2f}\n")
+
     print("Текущее состояние по Стохастик-рсай:")
     print(f"Состояние: {summary_SR['condition']}")
     print(f"Тренд: {summary_SR['trend']}")
     print(f"RSI: {summary_SR['rsi']:.2f}")
     print(f"Стохастик %K: {summary_SR['stoch_k']:.2f}")
-    print(f"Стохастик %D: {summary_SR['stoch_d']:.2f}")
-    print(f"Сигнал: {summary_SR['signal']}\n" + Style.RESET_ALL)
+    print(f"Стохастик %D: {summary_SR['stoch_d']:.2f}\n")
 
-    return dataMod
+    print("Текущее состояние по Объёмам:")
+    print(f"Тренд объема: {summary_V['volume_trend']}")
+    print(f"Текущий объем: {summary_V['current_volume']:,.0f}")
+    print(f"Изменение объема: {summary_V['volume_change']:.2f}%")
+    print(f"Сигнал ({summary_V['signal']}): {summary_V['signal_description']}\n" + Style.RESET_ALL)
+
+    return dataMod.drop(columns=["RSI", "prev_close", "prev_volume"])
 
 
 print(banner)
