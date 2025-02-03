@@ -5,10 +5,7 @@ from colorama import Fore, Back, Style, init
 from datetime import datetime, timedelta
 import pytz
 import time
-
-
-#Московское время
-MOSCOW_TZ = pytz.timezone('Europe/Moscow')
+import json
 
 """Вновь разрабатываемые модули"""
 from rsi_call import current_rsi_call
@@ -36,12 +33,31 @@ with open("banner.txt", 'r', encoding="UTF-8") as banner_file:
     banner = banner_file.read()
 
 
+#Московское время
+MOSCOW_TZ = pytz.timezone('Europe/Moscow')
+
+
+def load_config():
+    with open('CONFIG.json', 'r', encoding='utf-8') as file:
+        return json.load(file)
+    
+
+#подгрузка конфига
+CONFIG = load_config()
+TICKER = CONFIG.get("ticker")
+INTERVAL = CONFIG.get("interval")  # Интервал свечей в минутах
+
+
 #выбор анализируемого файла
-data = pandas.read_json("storage\MOEX_2024-11-12_1D_[191120].json")
+data = pandas.read_json("storage\YDEX_2025-02-02_1D_[193507].json")
+print(data)
 
 
 def processDataFrame(data: pandas.DataFrame) -> pandas.DataFrame:
 
+    print(banner)
+
+    #создание проанализированного фрейма
     dataMod = data.copy(deep=True)
 
     #добавляем столбец с данными об индексе отн. силы
@@ -105,10 +121,32 @@ def processDataFrame(data: pandas.DataFrame) -> pandas.DataFrame:
     print(f"Изменение объема: {summary_V['volume_change']:.2f}%")
     print(f"Сигнал ({summary_V['signal']}): {summary_V['signal_description']}\n" + Style.RESET_ALL)
 
+    print(dataMod.tail[7])
+
     return dataMod.drop(columns=["RSI", "prev_close", "prev_volume"])
 
 
-print(banner)
-#columns_to_keep = ['begin', 'close', "RSI", "[B]top", "[B]bottom", "[B]cue", "[C]Hammer", '[C]HangingMan', '[C]Engulfing']
-#print(dataMod.tail(17)[columns_to_keep])
-print(processDataFrame(data).tail(17))
+def main():
+
+    #добавление в видимость
+    global TICKER
+    global INTERVAL
+    global data
+
+    #временные границы торгового дня (установить нужные)
+    market_open = datetime.now(MOSCOW_TZ).replace(hour=6, minute=50, second=0, microsecond=0) #6:50
+    market_close = datetime.now(MOSCOW_TZ).replace(hour=22, minute=50, second=0, microsecond=0) #18:50
+    
+    while datetime.now(MOSCOW_TZ) < market_close:
+
+        now = datetime.now(MOSCOW_TZ)
+
+        if now >= market_open and now.minute % INTERVAL == 0 and now.second == 0 or now.second % 10 == 0:
+            upcomingCandle = ask_moex(ticker=TICKER, interval=INTERVAL, period="1D", record=False).iloc[-1]
+            data.iloc[-1] = upcomingCandle
+            processDataFrame(data)
+            time.sleep(10)  # Короткая пауза, чтобы избежать многократного вызова в одну секунду (так чат сказал)
+
+
+if __name__ == "__main__":
+    main()

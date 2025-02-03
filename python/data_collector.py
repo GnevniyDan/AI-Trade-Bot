@@ -25,7 +25,7 @@ if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
 
-def ask_moex(ticker: str = "FEES", interval: int = 10, period: str = "1D", end: str = None) -> pandas.DataFrame:
+def ask_moex(ticker: str = "FEES", interval: int = 10, period: str = "1D", end: str = None, record: bool = False) -> pandas.DataFrame:
     with requests.Session() as session:
 
         #установка анализируемого интервала
@@ -67,10 +67,10 @@ def ask_moex(ticker: str = "FEES", interval: int = 10, period: str = "1D", end: 
         #перегон в датафрейм
         dataFrame = pandas.DataFrame(candles)
         buf = buf.strftime("[%H%M%S]")
-        dataFrame.to_json("storage/{}_{}_{}_{}.json".format(ticker, start, period, buf))
+        if record: dataFrame.to_json("storage/{}_{}_{}_{}.json".format(ticker, start, period, buf))
         return dataFrame
 
 
 if __name__ == "__main__":
-    fetchedData = ask_moex(ticker = "YDEX", period="5D")
+    fetchedData = ask_moex(ticker = "YDEX", interval=10, period="1D", record=True)
     print(fetchedData)
