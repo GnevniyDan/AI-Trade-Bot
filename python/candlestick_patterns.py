@@ -85,7 +85,11 @@ def current_candlestick_patterns(dataFrame: pandas.DataFrame, window: int = 3) -
     dataFrame['Hammer'] = [is_hammer(row, dataFrame, i, window) for i, row in dataFrame.iterrows()]
     dataFrame['HangingMan'] = [is_hanging_man(row, dataFrame, i, window) for i, row in dataFrame.iterrows()]
     #Не более 100 шгагов назад
-    dataFrame['Engulfing'] = [is_engulfing(dataFrame, i) for i in range(max(len(dataFrame), 100))]
+    #dataFrame['Engulfing'] = [is_engulfing(dataFrame, i) for i in range(max(len(dataFrame), 100))]
+    dataFrame['Engulfing'] = [
+    is_engulfing(dataFrame, i) if i < len(dataFrame) else False for i in range(len(dataFrame))
+]
+
 
     columns_to_keep = ['Hammer', 'HangingMan', 'Engulfing']
 

@@ -24,8 +24,9 @@ if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)  # Создать директорию, если она отсутствует
 
 
-#хз что это, но это нужно
+#настройки библиотек
 pandas.set_option('future.no_silent_downcasting', True)
+init(autoreset=True)
 
 
 #баннер
@@ -46,14 +47,27 @@ def load_config():
 CONFIG = load_config()
 TICKER = CONFIG.get("ticker")
 INTERVAL = CONFIG.get("interval")  # Интервал свечей в минутах
+FILENAME = CONFIG.get("filename")   #имя файла базы данных, к которой будут приписываться строчки
+INSTANT_PROCESSING = CONFIG.get("instant processing") #bool один раз обработать массив без ожидания свечей
+SELF_CREATION = CONFIG.get("self creation") #bool не использовать файл data а создать его с нуля 
 
 
 #выбор анализируемого файла
-data = pandas.read_json("storage\YDEX_2025-02-02_1D_[193507].json")
-print(data)
+combined_path = os.path.join(DATA_DIR, FILENAME)
+if SELF_CREATION:
+    data = ask_moex(ticker=TICKER, interval=INTERVAL, period="1D", record=True)
+    print("MOEX answer catched!")
+    FILENAME = "self_created_{}_{}.json".format(TICKER, INTERVAL)
+else:
+    data = pandas.read_json(combined_path)
+print(Fore.BLACK + Back.WHITE + 'Последние свечи в базе\n', data.tail(4), "\n")
 
 
 def processDataFrame(data: pandas.DataFrame) -> pandas.DataFrame:
+
+    global TICKER
+    global INTERVAL
+    global MOSCOW_TZ
 
     print(banner)
 
@@ -100,28 +114,28 @@ def processDataFrame(data: pandas.DataFrame) -> pandas.DataFrame:
     Fore.YELLOW
     print(Fore.CYAN + "Мгновенные рекомендации:\n{}\n\n{}\n".format(bollinger.recommendation, levels))
 
-    print("Сводная информация по Скользящим средним:")
-    print(f"Тренд: {summary_MA['trend']}")
-    print(f"Волатильность: {summary_MA['volatility_status']} ({summary_MA['current_volatility']:.2%})")
-    print(f"Сигнал: {summary_MA['signal']}")
-    print(f"Цена закрытия: {summary_MA['close']:.2f}")
-    print(f"SMA: {summary_MA['sma']:.2f}")
-    print(f"EMA: {summary_MA['ema']:.2f}\n")
+    print(Fore.CYAN + "Сводная информация по Скользящим средним:")
+    print(Fore.CYAN + f"Тренд: {summary_MA['trend']}")
+    print(Fore.CYAN + f"Волатильность: {summary_MA['volatility_status']} ({summary_MA['current_volatility']:.2%})")
+    print(Fore.CYAN + f"Сигнал: {summary_MA['signal']}")
+    print(Fore.CYAN + f"Цена закрытия: {summary_MA['close']:.2f}")
+    print(Fore.CYAN + f"SMA: {summary_MA['sma']:.2f}")
+    print(Fore.CYAN + f"EMA: {summary_MA['ema']:.2f}\n")
 
-    print("Текущее состояние по Стохастик-рсай:")
-    print(f"Состояние: {summary_SR['condition']}")
-    print(f"Тренд: {summary_SR['trend']}")
-    print(f"RSI: {summary_SR['rsi']:.2f}")
-    print(f"Стохастик %K: {summary_SR['stoch_k']:.2f}")
-    print(f"Стохастик %D: {summary_SR['stoch_d']:.2f}\n")
+    print(Fore.CYAN + "Текущее состояние по Стохастик-рсай:")
+    print(Fore.CYAN + f"Состояние: {summary_SR['condition']}")
+    print(Fore.CYAN + f"Тренд: {summary_SR['trend']}")
+    print(Fore.CYAN + f"RSI: {summary_SR['rsi']:.2f}")
+    print(Fore.CYAN + f"Стохастик %K: {summary_SR['stoch_k']:.2f}")
+    print(Fore.CYAN + f"Стохастик %D: {summary_SR['stoch_d']:.2f}\n")
 
-    print("Текущее состояние по Объёмам:")
-    print(f"Тренд объема: {summary_V['volume_trend']}")
-    print(f"Текущий объем: {summary_V['current_volume']:,.0f}")
-    print(f"Изменение объема: {summary_V['volume_change']:.2f}%")
-    print(f"Сигнал ({summary_V['signal']}): {summary_V['signal_description']}\n" + Style.RESET_ALL)
+    print(Fore.CYAN + "Текущее состояние по Объёмам:")
+    print(Fore.CYAN + f"Тренд объема: {summary_V['volume_trend']}")
+    print(Fore.CYAN + f"Текущий объем: {summary_V['current_volume']:,.0f}")
+    print(Fore.CYAN + f"Изменение объема: {summary_V['volume_change']:.2f}%")
+    print(Fore.CYAN + f"Сигнал ({summary_V['signal']}): {summary_V['signal_description']}\n" + Style.RESET_ALL)
 
-    print(dataMod.tail[7])
+    print(Fore.BLACK + Back.WHITE + 'Анализ {}-минутных свечей по тикеру {} в {}\n'.format(INTERVAL, TICKER, datetime.now(MOSCOW_TZ)), dataMod.tail(4))
 
     return dataMod.drop(columns=["RSI", "prev_close", "prev_volume"])
 
@@ -132,19 +146,31 @@ def main():
     global TICKER
     global INTERVAL
     global data
+    global INSTANT_PROCESSING
+    global DATA_DIR
+
+    if INSTANT_PROCESSING:
+        #print(os.path.join(DATA_DIR, os.path.splitext(FILENAME)[0], "_postprocessed.json"))
+        processDataFrame(data).to_json(os.path.join(DATA_DIR, os.path.splitext(FILENAME)[0] + "_processed.json"))
+        os._exit(1)
 
     #временные границы торгового дня (установить нужные)
-    market_open = datetime.now(MOSCOW_TZ).replace(hour=6, minute=50, second=0, microsecond=0) #6:50
-    market_close = datetime.now(MOSCOW_TZ).replace(hour=22, minute=50, second=0, microsecond=0) #18:50
+    market_open = datetime.now(MOSCOW_TZ).replace(hour=0, minute=10, second=0, microsecond=0) #6:50
+    market_close = datetime.now(MOSCOW_TZ).replace(hour=23, minute=50, second=0, microsecond=0) #18:50
     
     while datetime.now(MOSCOW_TZ) < market_close:
 
         now = datetime.now(MOSCOW_TZ)
 
-        if now >= market_open and now.minute % INTERVAL == 0 and now.second == 0 or now.second % 10 == 0:
+        if now >= market_open and now.minute % INTERVAL == 0 and now.second == 0:
+
             upcomingCandle = ask_moex(ticker=TICKER, interval=INTERVAL, period="1D", record=False).iloc[-1]
-            data.iloc[-1] = upcomingCandle
-            processDataFrame(data)
+            data.loc[len(data)] = upcomingCandle
+
+            if upcomingCandle.empty:
+                raise  kit.DatabaseError("current candle is empty")
+            
+            processDataFrame(data).to_json(os.path.join(DATA_DIR, os.path.splitext(FILENAME)[0] + "_processed.json"))
             time.sleep(10)  # Короткая пауза, чтобы избежать многократного вызова в одну секунду (так чат сказал)
 
 

@@ -67,10 +67,10 @@ def ask_moex(ticker: str = "FEES", interval: int = 10, period: str = "1D", end: 
         #перегон в датафрейм
         dataFrame = pandas.DataFrame(candles)
         buf = buf.strftime("[%H%M%S]")
-        if record: dataFrame.to_json("storage/{}_{}_{}_{}.json".format(ticker, start, period, buf))
+        if record: dataFrame.to_json("storage/{}_{}_{}_{}_{}.json".format(ticker, start, period, interval, buf))
         return dataFrame
 
 
 if __name__ == "__main__":
-    fetchedData = ask_moex(ticker = "YDEX", interval=10, period="1D", record=True)
+    fetchedData = ask_moex(ticker = "SBER", interval=1, period="9D", record=True)
     print(fetchedData)

@@ -1,5 +1,7 @@
 {
-    "ticker": "YDEX",
+    "ticker": "SBER",
     "interval": 1,
-    "filename": "YDEX_2025-02-02_1D_[193326]"
+    "filename": "SBER_2025-01-26_9D_[171640].json",
+    "instant processing": 0,
+    "self creation": 1
 }
